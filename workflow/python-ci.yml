@@ -1,24 +1,83 @@
-name: Python CI
+name: Python CI/CD Pipeline
 
-on: [push, pull_request]
+on: 
+  push:
+    branches: [ main, acc, tst, dev ]
+    tags: [ 'v*' ]
+  pull_request:
+    branches: [ main, acc, tst, dev ]
 
 jobs:
-  build:
+  test:
+    name: Test and Lint
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.8", "3.9", "3.10", "3.11"]
 
     steps:
     - uses: actions/checkout@v4
-    - name: Set up Python
+    
+    - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: ${{ matrix.python-version }}
+    
     - name: Install dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-    - name: Run tests
+        pip install black flake8 mypy pytest-cov
+    
+    - name: Run linter (flake8)
       run: |
-        pytest -v
-    - name: Run script
+        flake8 hello.py test_hello.py --max-line-length=120
+    
+    - name: Run type checker (mypy)
       run: |
-        python hello.py
+        mypy hello.py test_hello.py
+    
+    - name: Run formatter check (black)
+      run: |
+        black --check hello.py test_hello.py
+    
+    - name: Run tests with coverage
+      run: |
+        pytest -v --cov=./ --cov-report=xml
+    
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v3
+      if: github.event_name == 'push'
+    
+    - name: Run main script (test mode)
+      run: |
+        python hello.py --test
+    
+    - name: Run main script with arguments
+      run: |
+        python hello.py --add 5 3
+        python hello.py --fact 6
+        python hello.py --palindrome "ana"
+
+  deploy:
+    name: Deploy to ACC
+    runs-on: ubuntu-latest
+    needs: test
+    if: github.ref == 'refs/heads/acc' || github.event_name == 'push' && contains(github.ref, 'tags')
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    
+    - name: Install dependencies
+      run: |
+        pip install -r requirements.txt
+    
+    - name: Additional deployment steps
+      run: |
+        echo "Add your ACC environment deployment steps here"
+        # Exemplo: rsync, scp, kubectl, etc.
