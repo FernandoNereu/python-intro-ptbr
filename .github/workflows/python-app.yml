@@ -75,9 +75,13 @@ jobs:
     
     - name: Test Docker image
       run: |
+        # Teste básico
         docker run --rm hello-ci-cd
-        docker run --rm hello-ci-cd --add 5 3
-        docker run --rm hello-ci-cd --fact 6
+        
+        # Teste com argumentos
+        docker run --rm hello-ci-cd python hello.py --add 5 3
+        docker run --rm hello-ci-cd python hello.py --fact 6
+        docker run --rm hello-ci-cd python hello.py --palindrome "ana"
 
   deploy:
     name: Deploy to ACC
