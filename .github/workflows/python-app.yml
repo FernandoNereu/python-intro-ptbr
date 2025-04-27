@@ -135,7 +135,11 @@ jobs:
       - name: Get workflow status
         id: get-status
         run: |
-          echo "status=${{ needs.test.result || needs.docker.result || needs.deploy.result || 'skipped' }}" >> $GITHUB_OUTPUT
+          if ${{ needs.test.result == 'success' && needs.docker.result == 'success' && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped') }}; then
+            echo "status=success" >> $GITHUB_OUTPUT
+          else
+            echo "status=failure" >> $GITHUB_OUTPUT
+          fi
       
       - name: Notify Discord - Workflow Completed
         uses: appleboy/discord-webhook-action@master
@@ -145,11 +149,10 @@ jobs:
           avatar: "https://github.com/github.png"
           username: "GitHub Actions Bot"
           message: |
-            :white_check_mark: **Workflow Completo** :white_check_mark:
+            ${{ steps.get-status.outputs.status == 'success' && ':white_check_mark:' || ':x:' }} **Workflow Completo** ${{ steps.get-status.outputs.status == 'success' && ':white_check_mark:' || ':x:' }}
             **Status**: ${{ steps.get-status.outputs.status }}
             **Repositório**: ${{ github.repository }}
             **Workflow**: ${{ github.workflow }}
             **Branch**: ${{ github.ref_name }}
             **Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
             **Execução**: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-            **Duração**: ${{ (github.run_attempt * 60 + (job.status == 'success' && 0 || 1)) }} segundos
