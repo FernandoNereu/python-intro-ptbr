@@ -1,4 +1,4 @@
-name: CI/CD para Todas as Branches
+name: Executar Testes em Todas as Branches
 
 on:
   push:
@@ -8,13 +8,13 @@ on:
 
 jobs:
   test:
-    name: Testar Aplicação
+    name: Executar Testes
     runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v4
     
-    - name: Instalar Python
+    - name: Configurar Python
       uses: actions/setup-python@v4
       with:
         python-version: '3.11'
@@ -24,27 +24,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
     
-    - name: Rodar testes
+    - name: Executar testes
       run: |
         python hello.py --test
-
-  notify:
-    name: Notificar Discord
-    needs: test
-    runs-on: ubuntu-latest
-    if: always()  # Executa mesmo se os testes falharem
-    
-    steps:
-    - name: Enviar notificação
-      uses: Ilshidur/action-discord@v1.3.0
-      with:
-        webhook: ${{ secrets.DISCORD_WEBHOOK_URL }}
-        title: "Status do CI/CD (${{ github.ref_name }})"
-        description: |
-          **Repositório**: ${{ github.repository }}
-          **Branch**: ${{ github.ref_name }}
-          **Status**: ${{ job.status }}
-          **Commit**: [${{ github.sha | slice(0,7) }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
-          **Execução**: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
-        color: ${{ job.status == 'success' && '65280' || '16711680' }}
-        username: "GitHub Actions Bot"
