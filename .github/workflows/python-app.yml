@@ -6,12 +6,33 @@ on:
     tags: [ 'v*' ]
   pull_request:
     branches: [ main, acc, tst, dev ]
-    types: [opened, synchronize, reopened]  # Runs on: PR created, new commits, PR reopened
+    types: [opened, synchronize, reopened]
 
 jobs:
+  notify-start:
+    name: Notify Discord (Workflow Start)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Notify Discord - Workflow Started
+        uses: appleboy/discord-webhook-action@master
+        with:
+          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
+          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          avatar: "https://github.com/github.png"
+          username: "GitHub Actions Bot"
+          message: |
+            :rocket: **Workflow Iniciado** :rocket:
+            **Repositório**: ${{ github.repository }}
+            **Workflow**: ${{ github.workflow }}
+            **Branch**: ${{ github.ref_name }}
+            **Evento**: ${{ github.event_name }}
+            **Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            **Execução**: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
   test:
     name: Test and Lint
     runs-on: ubuntu-latest
+    needs: notify-start
     strategy:
       matrix:
         python-version: ["3.8", "3.9", "3.10", "3.11"]
@@ -46,7 +67,6 @@ jobs:
       run: |
         pytest -v --cov=./ --cov-report=xml
       env:
-        # Forces full test execution even in PRs
         GITHUB_ACTIONS: true
     
     - name: Upload coverage to Codecov
@@ -79,10 +99,7 @@ jobs:
     
     - name: Test Docker image
       run: |
-        # Basic test
         docker run --rm hello-ci-cd
-        
-        # Test with arguments
         docker run --rm hello-ci-cd python hello.py --add 5 3
         docker run --rm hello-ci-cd python hello.py --fact 6
         docker run --rm hello-ci-cd python hello.py --palindrome "ana"
@@ -108,4 +125,31 @@ jobs:
     - name: Additional deployment steps
       run: |
         echo "Add your ACC environment deployment steps here"
-        # Example: rsync, scp, kubectl, etc.
+
+  notify-completion:
+    name: Notify Discord (Workflow Completion)
+    needs: [test, docker, deploy]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Get workflow status
+        id: get-status
+        run: |
+          echo "status=${{ needs.test.result || needs.docker.result || needs.deploy.result || 'skipped' }}" >> $GITHUB_OUTPUT
+      
+      - name: Notify Discord - Workflow Completed
+        uses: appleboy/discord-webhook-action@master
+        with:
+          webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
+          webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
+          avatar: "https://github.com/github.png"
+          username: "GitHub Actions Bot"
+          message: |
+            :white_check_mark: **Workflow Completo** :white_check_mark:
+            **Status**: ${{ steps.get-status.outputs.status }}
+            **Repositório**: ${{ github.repository }}
+            **Workflow**: ${{ github.workflow }}
+            **Branch**: ${{ github.ref_name }}
+            **Commit**: [${{ github.sha }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+            **Execução**: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            **Duração**: ${{ (github.run_attempt * 60 + (job.status == 'success' && 0 || 1)) }} segundos
