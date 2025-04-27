@@ -44,8 +44,7 @@ jobs:
           **Repositório**: ${{ github.repository }}
           **Branch**: ${{ github.ref_name }}
           **Status**: ${{ job.status }}
-          **Commit**: [${{
-github.sha | slice(0,7) }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
+          **Commit**: [${{ github.sha | slice(0,7) }}](https://github.com/${{ github.repository }}/commit/${{ github.sha }})
           **Execução**: [#${{ github.run_number }}](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }})
         color: ${{ job.status == 'success' && '65280' || '16711680' }}
         username: "GitHub Actions Bot"
