@@ -14,7 +14,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Notify Discord - Workflow Started
-        uses: appleboy/discord-webhook-action@master
+        uses: appleboy/discord-webhook-action@v1.1.0
         with:
           webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
           webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
@@ -135,14 +135,14 @@ jobs:
       - name: Get workflow status
         id: get-status
         run: |
-          if ${{ needs.test.result == 'success' && needs.docker.result == 'success' && (needs.deploy.result == 'success' || needs.deploy.result == 'skipped') }}; then
+          if [[ "${{ needs.test.result }}" == "success" && "${{ needs.docker.result }}" == "success" && ("${{ needs.deploy.result }}" == "success" || "${{ needs.deploy.result }}" == "skipped") ]]; then
             echo "status=success" >> $GITHUB_OUTPUT
           else
             echo "status=failure" >> $GITHUB_OUTPUT
           fi
       
       - name: Notify Discord - Workflow Completed
-        uses: appleboy/discord-webhook-action@master
+        uses: appleboy/discord-webhook-action@v1.1.0
         with:
           webhook_id: ${{ secrets.DISCORD_WEBHOOK_ID }}
           webhook_token: ${{ secrets.DISCORD_WEBHOOK_TOKEN }}
